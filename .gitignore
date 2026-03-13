@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.eggs/
+
+# Environment
+.env
+.env.*
+!.env.example
+*.pem
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Vite
+*.local
+
+# Python
+venv/
+.venv/
+*.egg

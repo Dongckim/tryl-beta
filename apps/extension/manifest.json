@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Tryl",
+  "version": "0.0.1",
+  "description": "AI fashion try-on — try on clothes from supported stores",
+  "permissions": ["storage", "activeTab", "tabs", "sidePanel"],
+  "host_permissions": ["https://*.zara.com/*", "https://static.zara.net/*", "http://localhost:8001/*"],
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "Tryl"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "js": ["src/content/index.ts"],
+      "matches": ["https://*.zara.com/*"],
+      "run_at": "document_idle"
+    }
+  ]
+}

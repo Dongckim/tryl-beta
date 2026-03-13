@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./apps/api
+    image: tryl-api:latest
+    env_file:
+      - ./apps/api/.env.production
+    ports:
+      - "8001:8000"
+    depends_on:
+      - redis
+      - db
+
+  worker:
+    build:
+      context: ./apps/worker
+    image: tryl-worker:latest
+    env_file:
+      - ./apps/worker/.env.production
+    depends_on:
+      - redis
+      - db
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: tryl-web:latest
+    env_file:
+      - ./apps/web/.env.production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: tryl
+      POSTGRES_USER: tryl
+      POSTGRES_PASSWORD: tryl
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
+

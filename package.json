@@ -1,0 +1,14 @@
+{
+  "name": "tryl",
+  "private": true,
+  "scripts": {
+    "web": "pnpm --filter web dev",
+    "extension": "pnpm --filter extension dev",
+    "build:web": "pnpm --filter web build",
+    "build:extension": "pnpm --filter extension build"
+  },
+  "devDependencies": {
+    "pnpm": "^9.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

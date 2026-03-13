@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment (secrets)
+.env
+.env.local
+.env.production
+.env*.local
+!.env.example
+!.env.*.example
+
+# Build / debug
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*

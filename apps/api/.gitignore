@@ -1,0 +1,30 @@
+# Environment (secrets)
+.env
+.env.local
+.env.production
+!.env.example
+!.env.*.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+.eggs/
+venv/
+.venv/
+*.egg
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.log
+
+# Local uploads (if STORAGE_BACKEND=local)
+uploads/
