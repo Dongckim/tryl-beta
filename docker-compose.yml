@@ -9,7 +9,7 @@ services:
     env_file:
       - ./apps/api/.env
     ports:
-      - "8001:8000"
+      - "8000:8000"
     depends_on:
       - redis
       - db
@@ -29,6 +29,9 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        # 로컬: 비우면 config.ts 기본값 사용. 배포: NEXT_PUBLIC_API_BASE_URL=http://API서버IP:8000
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
     image: tryl-web:latest
     env_file:
       - ./apps/web/.env

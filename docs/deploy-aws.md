@@ -231,7 +231,8 @@ docker push $ECR_URI/tryl-worker:latest
      <ECR_URI>/tryl-web:latest
    ```
 
-   빌드 시점에 `NEXT_PUBLIC_*`가 박히므로, URL을 바꿀 때는 **이미지를 다시 빌드**해야 할 수 있음. 그때는 동일한 `NEXT_PUBLIC_API_BASE_URL`로 빌드 후 새 이미지 푸시 → Web EC2에서 pull & 재실행.
+   **요청이 localhost:8000으로 나가서 EC2 API에 안 붙을 때:** 웹 이미지는 **빌드할 때** `NEXT_PUBLIC_API_BASE_URL`이 번들에 박힙니다. 실행 시 `.env`로 바꿀 수 없으므로, **이미지를 `NEXT_PUBLIC_API_BASE_URL=http://<API-EC2-퍼블릭-IP>:8000` 으로 다시 빌드**한 뒤 푸시하고 Web EC2에서 pull & 재실행하세요.  
+   또는 Web EC2에 레포 클론 후 `.env`에 `NEXT_PUBLIC_API_BASE_URL=http://<API-EC2-IP>:8000` 넣고 `docker compose -f docker-compose.ec2-web.yml up -d --build` 로 해당 서버에서 직접 빌드해도 됩니다.
 
 5. **확인**
 

@@ -8,7 +8,7 @@ services:
     env_file:
       - ./apps/api/.env.production
     ports:
-      - "8001:8000"
+      - "8000:8000"
     depends_on:
       - redis
       - db
@@ -27,6 +27,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
     image: tryl-web:latest
     env_file:
       - ./apps/web/.env.production
