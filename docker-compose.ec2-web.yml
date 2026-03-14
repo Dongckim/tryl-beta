@@ -1,12 +1,12 @@
 # Web 전용 EC2에서 실행. 이미지는 미리 pull (예: ECR)
-# 사용: .env.production 준비 후 → docker compose -f docker-compose.ec2-web.yml up -d
+# 사용: 루트에 .env 준비 후 → docker compose -f docker-compose.ec2-web.yml up -d
 version: "3.9"
 
 services:
   web:
     image: tryl-web:latest
     env_file:
-      - .env.production
+      - .env
     ports:
       - "3000:3000"
     restart: unless-stopped

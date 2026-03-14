@@ -319,3 +319,41 @@ sudo docker pull <ECR_URI>/tryl-api:latest
 sudo docker tag <ECR_URI>/tryl-api:latest tryl-api:latest
 sudo docker compose -f docker-compose.ec2-api.yml up -d
 ```
+
+---
+
+## 10. 트러블슈팅
+
+### `KeyError: 'ContainerConfig'` (web 재생성 시)
+
+- **원인**: 예전 **docker-compose v1** (Python, `docker-compose` 명령)이 최신 Docker Engine API와 맞지 않아서 발생.
+- **해결**: **Docker Compose V2** 플러그인 사용. 명령은 **띄어쓰기** 있는 `docker compose`를 쓴다.
+
+  Ubuntu 기본 저장소에는 플러그인이 없으므로 **Docker 공식 APT 저장소**를 추가한 뒤 설치한다:
+
+  ```bash
+  # Docker 공식 저장소 추가 (Ubuntu)
+  sudo apt-get update
+  sudo apt-get install -y ca-certificates curl gnupg
+  sudo install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null
+  sudo chmod a+r /etc/apt/keyrings/docker.asc
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  sudo apt-get update
+
+  # Compose V2 플러그인 설치
+  sudo apt-get install -y docker-compose-plugin
+
+  # 확인
+  docker compose version
+  ```
+
+  이후에는 항상 `docker-compose` 대신 `docker compose`로 실행:
+
+  ```bash
+  docker compose -f docker-compose.yml up -d
+  # 또는 EC2 단일 서비스
+  sudo docker compose -f docker-compose.ec2-api.yml up -d
+  ```
+
+- **Web이 Exit 0로 남아 있는 경우**: 위 오류로 재생성이 실패한 뒤 예전 컨테이너만 남은 상태일 수 있음. V2로 전환한 뒤 `docker compose up -d` 다시 실행하면 된다. 필요하면 `docker rm <web컨테이너이름>` 후 다시 up.

@@ -1,0 +1,6 @@
+# Used when building web (context: .). Exclude env so they are not baked in.
+.env
+.env.*
+**/.env
+**/.env.local
+**/.env.production
