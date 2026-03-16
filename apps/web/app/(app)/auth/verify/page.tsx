@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const { verifyEmailCode, resendVerification } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -114,5 +114,13 @@ export default function VerifyEmailPage() {
         <Link href="/auth/sign-in" className="font-medium text-black hover:underline">Sign in</Link>
       </p>
     </>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
