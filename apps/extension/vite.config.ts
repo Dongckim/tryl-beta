@@ -5,6 +5,7 @@ import manifest from "./manifest.json";
 
 export default defineConfig({
   plugins: [react(), crx({ manifest })],
+  envDir: ".", // .env in extension root (apps/extension)
   build: {
     outDir: "dist",
     emptyOutDir: true,

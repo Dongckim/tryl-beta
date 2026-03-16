@@ -18,6 +18,8 @@ class TryonJobCreate(BaseModel):
     product_image_url_override: str | None = Field(
         default=None, alias="productImageUrlOverride"
     )
+    # Which profile photo to use: 1 = front (1st), 2 = side (2nd). Default 1.
+    profile_photo_index: int | None = Field(default=1, alias="profilePhotoIndex", ge=1, le=2)
 
 
 class TryonJobCreateResponse(BaseModel):

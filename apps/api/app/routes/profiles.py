@@ -21,6 +21,9 @@ from app.services.profile_service import (
 
 router = APIRouter(prefix="/profiles", tags=["profiles"])
 
+ALLOWED_IMAGE_CONTENT_TYPES = {"image/jpeg", "image/png"}
+MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5MB per image
+
 
 @router.get("/me")
 def get_me(
@@ -96,18 +99,23 @@ async def upload_profile_images(
         raise HTTPException(status_code=401, detail="User not found")
     user_id = user_row["id"]
 
-    if not front_image.content_type or not front_image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="front_image must be an image")
-    if not side_image.content_type or not side_image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="side_image must be an image")
-
     front_data = await front_image.read()
     side_data = await side_image.read()
-    ext = "jpg"
-    if "png" in (front_image.content_type or ""):
-        ext = "png"
-    front_key = profile_image_upload_key(user_id, "front", ext)
-    side_key = profile_image_upload_key(user_id, "side", ext)
+
+    ct_front = (front_image.content_type or "").strip().lower()
+    ct_side = (side_image.content_type or "").strip().lower()
+    if ct_front not in ALLOWED_IMAGE_CONTENT_TYPES or ct_side not in ALLOWED_IMAGE_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Only JPEG and PNG are allowed. HEIC and other formats are not supported.",
+        )
+    if len(front_data) > MAX_IMAGE_BYTES or len(side_data) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="Each image must be 5MB or smaller.")
+
+    ext_front = "png" if ct_front == "image/png" else "jpg"
+    ext_side = "png" if ct_side == "image/png" else "jpg"
+    front_key = profile_image_upload_key(user_id, "front", ext_front)
+    side_key = profile_image_upload_key(user_id, "side", ext_side)
 
     try:
         storage = get_storage()

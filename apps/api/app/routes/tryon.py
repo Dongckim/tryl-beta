@@ -11,6 +11,7 @@ from app.schemas.tryon import (
     TryonJobStatusResponse,
 )
 from app.services.tryon_service import (
+    BetaLimitReachedError,
     create_tryon_job,
     get_job_result,
     get_job_status,
@@ -26,12 +27,19 @@ def create_job(
     user: CurrentUser = Depends(get_current_user),
 ) -> TryonJobCreateResponse:
     """Create a try-on job for a product and an optional fitting profile version."""
-    job = create_tryon_job(
-        user,
-        product_id=body.product_id,
-        fitting_profile_version_id=body.fitting_profile_version_id,
-        product_image_url_override=body.product_image_url_override,
-    )
+    try:
+        job = create_tryon_job(
+            user,
+            product_id=body.product_id,
+            fitting_profile_version_id=body.fitting_profile_version_id,
+            product_image_url_override=body.product_image_url_override,
+            profile_photo_index=body.profile_photo_index or 1,
+        )
+    except BetaLimitReachedError:
+        raise HTTPException(
+            status_code=429,
+            detail="Beta limit reached",
+        )
     if job is None:
         raise HTTPException(
             status_code=400,

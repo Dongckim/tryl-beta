@@ -44,20 +44,20 @@ def build_tryon_prompt(
 ) -> str:
     """
     Build a virtual try-on prompt from parsed Zara product data.
-    The garment described is fitted onto the person in the reference photo,
-    forcing structural changes (silhouette, length) over the original clothes.
+    Instructs the model to replace only the garment region that matches the item,
+    with full structural change (not texture transfer), and to leave all other
+    clothing and the person/background unchanged.
     """
     brand = (product_brand or "ZARA").strip().upper()
     title = (product_title or "the garment").strip()
     category = (product_category or "clothing").strip()
 
     parts = [
-        f"Virtual try-on: The person is now wearing a {brand} {title} ({category}).",
-        "COMPLETELY REPLACE the original clothing. Ignore the old garment's boundaries, length, and shape.",
-        f"Redraw the silhouette to perfectly match the precise cut and shape of the {category} ({title}).",
-        "Accurately reflect the new sleeve length, pant leg width, neckline, and overall fit of the new item, even if it covers bare skin or shrinks the original garment area.",
-        "Strictly preserve the person's exact face, facial features, skin tone, hands, pose, and the original background environment.",
-        "Clear realistic photo, standard web resolution, accurate clothing preview.",
+        f"Virtual try-on: Apply the {brand} {title} ({category}) to the person.",
+        "From the item image and description, identify which part of the outfit this garment is (e.g. top, bottom, dress). Replace ONLY that garment: change its shape, silhouette, cut, length, sleeves, neckline, waist, or leg shape to match the new item. Do NOT merely overlay the new item's pattern or texture onto the existing clothing—the old garment in that region must be fully replaced in structure and appearance.",
+        "When the new garment exposes more skin (e.g. shorts or short skirt instead of long pants, short sleeves instead of long): remove the old garment in that area entirely and draw the exposed body (legs, arms) as bare skin. Use the person's skin tone from the reference photo so newly visible skin matches their face, hands, and existing skin. Do not show the new garment on top of the old one (e.g. no shorts over long pants).",
+        "Leave all other clothing unchanged: if the item is a top, keep pants/skirt/shorts/shoes exactly as in the original; if the item is pants/skirt/shorts, keep the top/jacket exactly as in the original; if the item is a dress or full-body piece, then the full outfit may change as needed. Do not modify any clothing that is unrelated to the provided garment.",
+        "Preserve the person's exact face, facial features, skin tone, hands, pose, hair, body proportions, and the original background. Output a clear, realistic e-commerce try-on photo.",
     ]
 
     return " ".join(parts)
@@ -86,7 +86,11 @@ class NanoBananaProvider:
             product_brand=input.product_brand,
             product_category=input.product_category,
         )
-        person_url = input.fitting_profile.front_image_url
+        person_url = (
+            input.person_image_url
+            if input.person_image_url
+            else input.fitting_profile.front_image_url
+        )
         garment_url = input.product_image_url
 
         # Fetch images and encode as base64 inline_data per Gemini docs.

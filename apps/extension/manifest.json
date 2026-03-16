@@ -3,8 +3,16 @@
   "name": "Tryl",
   "version": "0.0.1",
   "description": "AI fashion try-on — try on clothes from supported stores",
-  "permissions": ["storage", "activeTab", "tabs", "sidePanel"],
-  "host_permissions": ["https://*.zara.com/*", "https://static.zara.net/*", "http://localhost:8001/*"],
+  "permissions": ["storage", "activeTab", "tabs", "sidePanel", "scripting"],
+  "host_permissions": [
+    "https://*.zara.com/*",
+    "https://static.zara.net/*",
+    "http://localhost:8000/*",
+    "http://localhost:8001/*",
+    "http://*:8001/*",
+    "http://*:8000/*",
+    "https://api.tryl.me/*"
+  ],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_title": "Tryl"

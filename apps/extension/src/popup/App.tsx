@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { listProfileVersions, signIn, setAuthToken, type ProfileVersion } from "../background/api";
+import { TRYL_WEB_BASE_URL } from "../background/config";
 import { clearSession, getSession, setSession, type Session } from "../lib/session";
 import type { ExtractedProduct } from "../adapters/types";
 
@@ -12,6 +13,59 @@ interface LocalArchiveItem {
 }
 
 const ARCHIVE_KEY = "tryl_extension_archive";
+const GEMINI_USAGE_KEY = "tryl_gemini_usage";
+const GEMINI_USAGE_LIMIT = 20;
+/** Server returns this when account has reached beta limit (429). */
+const BETA_LIMIT_REACHED_MESSAGE = "Beta limit reached";
+
+/** Usage is stored per account (by user id). Legacy: a single number was stored for the whole browser — we do not assign it to any account. */
+function getGeminiUsageForUser(userId: string, raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return 0;
+  }
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const n = (raw as Record<string, number>)[userId];
+    return typeof n === "number" && Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+function setGeminiUsageForUser(
+  userId: string,
+  count: number,
+  currentRaw: unknown
+): Record<string, number> {
+  let obj: Record<string, number>;
+  if (typeof currentRaw === "number" && Number.isFinite(currentRaw)) {
+    obj = {};
+  } else if (currentRaw && typeof currentRaw === "object" && !Array.isArray(currentRaw)) {
+    obj = { ...(currentRaw as Record<string, number>) };
+  } else {
+    obj = {};
+  }
+  obj[userId] = count;
+  return obj;
+}
+/** User feedback form URL. */
+const FEEDBACK_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeUhZLhWwQw4oNHrhPKPmUMpt4A-Ae3m2mDa7zZWU8Ouq1onA/viewform?usp=dialog";
+
+/**
+ * Inject the content script into the active tab if it's a Zara page, so the popup can
+ * run Active Scan (GET_PRODUCT) without reloading the tab. Popup stays open.
+ */
+async function injectZaraContentScriptIfActive(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !tab.url?.toLowerCase().includes("zara.com")) return;
+  const manifest = chrome.runtime.getManifest();
+  const scripts = manifest.content_scripts?.[0]?.js;
+  const scriptPath = Array.isArray(scripts) ? scripts[0] : undefined;
+  if (!scriptPath) return;
+  try {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: [scriptPath] });
+  } catch {
+    // Already injected or tab invalid; ignore
+  }
+}
 
 function Header({
   onSettings,
@@ -28,7 +82,23 @@ function Header({
       <h1 className="font-serif text-xl font-light italic tracking-[0.15em] text-white">
         TRYL
       </h1>
-      <div className="relative">
+      <div className="relative flex items-center gap-0.5">
+        <a
+          href={`${TRYL_WEB_BASE_URL}/profile`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="py-1.5 px-2 rounded-md text-[11px] text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+        >
+          Profile
+        </a>
+        <a
+          href={`${TRYL_WEB_BASE_URL}/closet`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="py-1.5 px-2 rounded-md text-[11px] text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+        >
+          Closet
+        </a>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -190,21 +260,21 @@ function ScannerCard({
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden">
-      <div className="p-3 flex items-center justify-between border-b border-white/5">
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden">
+      <div className="px-3 py-2.5 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-2">
           <span className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">
             Active scan
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/20 text-accent text-xs font-medium animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Textile Analyzed
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/10 text-gray-400 text-[11px] font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80" />
+            Ready
           </span>
         </div>
         <button
           type="button"
           onClick={onRefresh}
-          className="p-1 rounded text-gray-500 hover:text-white transition-colors"
+          className="p-1.5 rounded-md text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
           aria-label="Refresh"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,9 +282,9 @@ function ScannerCard({
           </svg>
         </button>
       </div>
-      <div className="flex gap-4 p-4">
+      <div className="flex gap-3 p-3">
         <div className="flex-shrink-0 flex flex-col items-center gap-1">
-          <div className="relative w-28 h-40 rounded-lg bg-white/10 overflow-hidden border border-white/10">
+          <div className="relative w-28 h-40 rounded-lg bg-white/5 overflow-hidden border border-white/10">
             <img
               src={
                 product.imageUrls?.[selectedImageIndex] ??
@@ -270,39 +340,17 @@ function ScannerCard({
           <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
             {product.brand ?? "—"}
           </p>
-          <h3 className="font-medium text-white truncate mt-0.5">
+          <h3 className="font-medium text-white truncate mt-0.5 leading-tight">
             {product.title}
           </h3>
           {product.priceText && (
-            <p className="text-accent font-semibold mt-1">{product.priceText}</p>
+            <p className="text-accent font-semibold mt-1 text-sm">{product.priceText}</p>
           )}
-          {product.sizes && product.sizes.length > 0 && (
-            <div className="mt-2">
-              <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
-                Sizes
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {product.sizes.map((s) => (
-                  <span
-                    key={s.label}
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      s.soldOut
-                        ? "bg-white/5 text-gray-500 line-through"
-                        : "bg-white/10 text-white/90"
-                    }`}
-                  >
-                    {s.label}
-                    {s.soldOut && (
-                      <span className="ml-1 text-[10px] text-red-400/80">Sold out</span>
-                    )}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {product.imageUrls && product.imageUrls.length > 1 && (
-            <p className="text-xs text-gray-500 mt-1">Use arrows to select the image</p>
-          )}
+          <div className="pt-2.5 mt-2 border-t border-white/5">
+            <p className="text-[10px] leading-relaxed text-gray-500">
+              Use a photo where the garment’s shape is clearly visible. Sizes are not guaranteed—use as visual reference only.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -474,9 +522,13 @@ function ProfileVersionSelector({
 function RecentArchives({
   items,
   onOpen,
+  onClear,
+  onDelete,
 }: {
   items: LocalArchiveItem[];
   onOpen: (item: LocalArchiveItem) => void;
+  onClear: () => void;
+  onDelete: (id: string) => void;
 }) {
   return (
     <div>
@@ -484,6 +536,15 @@ function RecentArchives({
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
           Recent Archives
         </h3>
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-[10px] text-gray-500 hover:text-gray-300"
+          >
+            Clear
+          </button>
+        )}
       </div>
       {items.length === 0 ? (
         <p className="px-1 text-[11px] text-gray-500">
@@ -497,8 +558,19 @@ function RecentArchives({
               key={item.id}
               type="button"
               onClick={() => onOpen(item)}
-              className="flex-shrink-0 w-32 rounded-lg overflow-hidden border border-white/10 bg-white/5 hover:border-accent/70 transition-colors"
+              className="relative flex-shrink-0 w-32 rounded-lg overflow-hidden border border-white/10 bg-white/5 hover:border-accent/70 transition-colors"
             >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item.id);
+                }}
+                className="absolute right-1 top-1 z-10 rounded-full bg-black/70 text-[10px] text-gray-300 px-1.5 py-0.5 hover:bg-black hover:text-white"
+                aria-label="Remove from Recent Archives"
+              >
+                ✕
+              </button>
               <div className="aspect-[3/4] bg-white/10">
                 <img
                   src={item.imageUrl}
@@ -535,6 +607,10 @@ function TryiDashboard({
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<1 | 2 | null>(null);
   const [selectPhotoModalOpen, setSelectPhotoModalOpen] = useState(false);
+  const [geminiUsageCount, setGeminiUsageCount] = useState(0);
+  const [betaLimitModalOpen, setBetaLimitModalOpen] = useState(false);
+  /** When true, modal is from server 429 (account limit); when false, from local count. */
+  const [betaLimitFromAccount, setBetaLimitFromAccount] = useState(false);
 
   const refreshProduct = useCallback(async () => {
     setProductLoading(true);
@@ -567,11 +643,41 @@ function TryiDashboard({
     });
   }, []);
 
+  // Load Gemini usage count from extension storage (per account)
+  useEffect(() => {
+    const userId = session.user?.id;
+    if (!userId) {
+      setGeminiUsageCount(0);
+      return;
+    }
+    chrome.storage.local.get(GEMINI_USAGE_KEY, (data) => {
+      const raw = data?.[GEMINI_USAGE_KEY];
+      setGeminiUsageCount(getGeminiUsageForUser(userId, raw));
+    });
+  }, [session.user?.id]);
+
   useEffect(() => {
     refreshProduct();
   }, [refreshProduct]);
 
   async function handleTryOn() {
+    const userId = session.user?.id;
+    if (!userId) return;
+
+    const { currentUsage } = await new Promise<{ currentUsage: number; raw: unknown }>((resolve) => {
+      chrome.storage.local.get(GEMINI_USAGE_KEY, (data) => {
+        const raw = data?.[GEMINI_USAGE_KEY];
+        resolve({ currentUsage: getGeminiUsageForUser(userId, raw), raw });
+      });
+    });
+
+    if (currentUsage >= GEMINI_USAGE_LIMIT) {
+      setGeminiUsageCount(currentUsage);
+      setBetaLimitFromAccount(false);
+      setBetaLimitModalOpen(true);
+      return;
+    }
+
     if (product) {
       // Require user to explicitly choose which fitting photo set to use.
       if (!selectedVersionId || !selectedPhotoIndex) {
@@ -591,11 +697,30 @@ function TryiDashboard({
             priceText: product.priceText ?? undefined,
           },
           fittingProfileVersionId: selectedVersionId ?? undefined,
+          profilePhotoIndex: selectedPhotoIndex ?? 1,
         });
         if (res?.ok && res.jobId) {
+          const nextUsage = currentUsage + 1;
+          setGeminiUsageCount(nextUsage);
+          const nextRaw = await new Promise<unknown>((resolve) => {
+            chrome.storage.local.get(GEMINI_USAGE_KEY, (data) => resolve(data?.[GEMINI_USAGE_KEY]));
+          });
+          chrome.storage.local.set({
+            [GEMINI_USAGE_KEY]: setGeminiUsageForUser(userId, nextUsage, nextRaw),
+          });
           chrome.windows.getCurrent((win) => {
             if (win?.id != null) chrome.sidePanel.open({ windowId: win.id }).catch(() => {});
           });
+        } else if (res?.error === BETA_LIMIT_REACHED_MESSAGE) {
+          setGeminiUsageCount(GEMINI_USAGE_LIMIT);
+          chrome.storage.local.get(GEMINI_USAGE_KEY, (data) => {
+            const raw = data?.[GEMINI_USAGE_KEY];
+            chrome.storage.local.set({
+              [GEMINI_USAGE_KEY]: setGeminiUsageForUser(userId, GEMINI_USAGE_LIMIT, raw),
+            });
+          });
+          setBetaLimitFromAccount(true);
+          setBetaLimitModalOpen(true);
         }
       } catch {
         // Fallback: just open panel
@@ -675,9 +800,35 @@ function TryiDashboard({
             onOpen={(item) => {
               chrome.tabs.create({ url: item.sourceUrl }).catch(() => {});
             }}
+            onClear={() => {
+              chrome.storage.local.remove(ARCHIVE_KEY, () => {});
+              setRecentArchive([]);
+            }}
+            onDelete={(id) => {
+              setRecentArchive((prev) => {
+                const next = prev.filter((item) => item.id !== id);
+                chrome.storage.local.set({ [ARCHIVE_KEY]: next });
+                return next;
+              });
+            }}
           />
         </section>
       </main>
+
+      {/* Beta usage badge (always visible) */}
+      <div className="border-t border-white/10 bg-black/90 px-4 py-2 text-[11px] text-gray-400 flex items-center justify-between">
+        <span className="uppercase tracking-wider text-[10px] text-gray-500">
+          Beta
+        </span>
+        <span>
+          Try-on usage{" "}
+          <span className="font-semibold text-white">
+            {Math.min(geminiUsageCount, GEMINI_USAGE_LIMIT)}
+          </span>
+          {" / "}
+          {GEMINI_USAGE_LIMIT}
+        </span>
+      </div>
 
       {/* PRO upsell modal for archive lock in profile selector */}
       {upgradeOpen && (
@@ -728,6 +879,53 @@ function TryiDashboard({
           </div>
         </div>
       )}
+
+      {/* Beta Gemini usage limit modal */}
+      {betaLimitModalOpen && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/70">
+          <div className="w-full max-w-xs rounded-xl bg-surface/95 p-4 shadow-xl border border-white/10">
+            <h2 className="mb-1 text-sm font-semibold text-white">Beta limit reached</h2>
+            {betaLimitFromAccount ? (
+              <p className="mb-3 text-xs text-gray-300">
+                This account has reached the beta limit ({GEMINI_USAGE_LIMIT} tries).
+              </p>
+            ) : (
+              <>
+                <p className="mb-2 text-xs text-gray-300">
+                  This beta uses Gemini for virtual try-on and is currently limited to{" "}
+                  <span className="font-semibold text-white">{GEMINI_USAGE_LIMIT}</span> runs.
+                </p>
+                <p className="mb-3 text-xs text-gray-400">
+                  You&apos;ve used{" "}
+                  <span className="font-semibold text-white">
+                    {Math.min(geminiUsageCount, GEMINI_USAGE_LIMIT)}
+                  </span>{" "}
+                  / {GEMINI_USAGE_LIMIT} attempts on this browser.
+                </p>
+              </>
+            )}
+            <p className="mb-2 text-xs text-gray-400">
+              Help us improve — share your feedback:
+            </p>
+            <button
+              type="button"
+              onClick={() => chrome.tabs.create({ url: FEEDBACK_FORM_URL }).catch(() => {})}
+              className="mb-3 w-full rounded-lg px-3 py-2 text-xs font-medium text-accent border border-accent/50 bg-accent/10 hover:bg-accent/20"
+            >
+              Open feedback form
+            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setBetaLimitModalOpen(false)}
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-200 bg-white/5 hover:bg-white/10"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -739,6 +937,7 @@ function SignInView({
   setPassword,
   error,
   loading,
+  emailNotVerified,
   onSubmit,
 }: {
   email: string;
@@ -747,8 +946,42 @@ function SignInView({
   setPassword: (v: string) => void;
   error: string;
   loading: boolean;
+  emailNotVerified: boolean;
   onSubmit: (e: React.FormEvent) => void;
 }) {
+  const verifyUrl = `${TRYL_WEB_BASE_URL}/auth/verify${email ? `?email=${encodeURIComponent(email)}` : ""}`;
+  const signUpUrl = `${TRYL_WEB_BASE_URL}/auth/sign-up`;
+
+  if (emailNotVerified) {
+    return (
+      <div className="flex flex-col h-[600px] max-h-[600px] bg-black">
+        <Header onSettings={() => {}} />
+        <main className="flex-1 overflow-y-auto p-6 flex flex-col justify-center">
+          <h2 className="font-serif text-2xl font-bold text-white mb-1">
+            Email verification required
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Your email is not verified yet. Please verify your email first on the Tryl website.
+          </p>
+          <a
+            href={verifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3 px-4 rounded-xl font-semibold text-center text-black bg-accent hover:bg-accent/90 transition-all block"
+          >
+            Open Tryl website
+          </a>
+          <p className="mt-4 text-center text-xs text-gray-500">
+            Don&apos;t have an account?{" "}
+            <a href={signUpUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+              Sign up
+            </a>
+          </p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[600px] max-h-[600px] bg-black">
       <Header onSettings={() => {}} />
@@ -798,6 +1031,12 @@ function SignInView({
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        <p className="mt-4 text-center text-xs text-gray-500">
+          Don&apos;t have an account?{" "}
+          <a href={signUpUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+            Sign up
+          </a>
+        </p>
       </main>
     </div>
   );
@@ -817,29 +1056,37 @@ export function App() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
 
   useEffect(() => {
-    getSession().then((s) => {
-      setSessionState(s ?? null);
-      // Ensure popup-side API client has the auth token for authenticated calls
+    getSession().then(async (s) => {
       if (s?.accessToken) {
         setAuthToken(s.accessToken);
+        // Inject content script into Zara tab if active so Active Scan works without reload
+        await injectZaraContentScriptIfActive();
       }
+      setSessionState(s ?? null);
     });
   }, []);
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setEmailNotVerified(false);
     setLoading(true);
     try {
       const res = await signIn({ email, password });
       await setSession({ accessToken: res.access_token, user: res.user });
-      // Keep popup and background API clients in sync with the latest token
       setAuthToken(res.access_token);
+      await injectZaraContentScriptIfActive();
       setSessionState(await getSession());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign in failed");
+      const msg = err instanceof Error ? err.message : "Sign in failed";
+      if (msg === "email_not_verified") {
+        setEmailNotVerified(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -858,6 +1105,7 @@ export function App() {
         setPassword={setPassword}
         error={error}
         loading={loading}
+        emailNotVerified={emailNotVerified}
         onSubmit={handleSignIn}
       />
     );

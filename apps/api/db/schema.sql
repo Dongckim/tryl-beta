@@ -6,8 +6,45 @@ CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255),
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    age INT,
+    sex VARCHAR(20),
+    email_verified BOOLEAN NOT NULL DEFAULT false,
+    invite_code VARCHAR(20) UNIQUE,
+    referrer_user_id BIGINT REFERENCES users (id) ON DELETE SET NULL,
+    trial_remaining INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE INDEX idx_users_referrer_user_id ON users (referrer_user_id) WHERE referrer_user_id IS NOT NULL;
+
+-- Invite codes (seed + per-user; one code can be used by many)
+CREATE TABLE invite_codes (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    created_by_user_id BIGINT REFERENCES users (id) ON DELETE CASCADE,
+    is_seed BOOLEAN NOT NULL DEFAULT false,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_invite_codes_code ON invite_codes (code);
+CREATE INDEX idx_invite_codes_created_by ON invite_codes (created_by_user_id) WHERE created_by_user_id IS NOT NULL;
+
+-- Email verification codes (6-digit, 10min, 5 attempts)
+CREATE TABLE email_verification_codes (
+    id BIGSERIAL PRIMARY KEY,
+    email TEXT NOT NULL,
+    code_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempt_count INT NOT NULL DEFAULT 0,
+    consumed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_email_verification_codes_email ON email_verification_codes (email);
 
 -- User fitting profiles (one user can have multiple)
 CREATE TABLE user_profiles (
@@ -76,7 +113,9 @@ CREATE TABLE tryon_jobs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     completed_at TIMESTAMPTZ,
     override_product_image_url TEXT,
-    CONSTRAINT chk_tryon_jobs_status CHECK (status IN ('queued', 'processing', 'completed', 'failed'))
+    profile_photo_index SMALLINT NOT NULL DEFAULT 1,
+    CONSTRAINT chk_tryon_jobs_status CHECK (status IN ('queued', 'processing', 'completed', 'failed')),
+    CONSTRAINT chk_tryon_jobs_profile_photo_index CHECK (profile_photo_index IN (1, 2))
 );
 
 CREATE INDEX idx_tryon_jobs_user_id ON tryon_jobs (user_id);

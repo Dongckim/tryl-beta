@@ -36,24 +36,25 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 chrome.runtime.onMessage.addListener(
-  (
+    (
     message: {
       type?: string;
       product?: ResolveProductPayload;
       jobId?: number;
       fittingProfileVersionId?: number;
+      profilePhotoIndex?: 1 | 2;
       note?: string | null;
     },
     sender,
     sendResponse
   ) => {
     if (message.type === "TRY_ON") {
-      handleTryOn(message.product, sender.tab, message.fittingProfileVersionId, sendResponse);
+      handleTryOn(message.product, sender.tab, message.fittingProfileVersionId, message.profilePhotoIndex, sendResponse);
       return true;
     }
     if (message.type === "TRY_ON_FROM_POPUP" && message.product) {
       chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-        handleTryOn(message.product, tab, message.fittingProfileVersionId, sendResponse);
+        handleTryOn(message.product, tab, message.fittingProfileVersionId, message.profilePhotoIndex, sendResponse);
       });
       return true;
     }
@@ -86,7 +87,7 @@ async function handleGetJobStatus(
     };
     if (job.status === "completed") {
       const result = await getTryOnResult(jobId);
-      payload.result = result;
+      payload.result = { ...result, job_created_at: job.created_at };
     }
     sendResponse(payload);
   } catch (err) {
@@ -112,6 +113,7 @@ async function handleTryOn(
   product: ResolveProductPayload | undefined,
   tab: chrome.tabs.Tab | undefined,
   fittingProfileVersionId: number | undefined,
+  profilePhotoIndex: 1 | 2 | undefined,
   sendResponse: (r: unknown) => void
 ): Promise<void> {
   if (!product?.sourceSite || !product.sourceUrl || !product.title || !product.imageUrl) {
@@ -134,9 +136,14 @@ async function handleTryOn(
       return;
     }
 
-    // 2. Create try-on job (product image: worker uses product.image_url from DB, e.g. Zara CDN).
-    // Product image is uploaded to S3 only when user clicks "Saved to Closet".
-    const job = await createTryOnJob(productId, fittingProfileVersionId);
+    // 2. Create try-on job. Pass product.imageUrl as override when user picked a specific gallery image (e.g. 2nd image).
+    // profilePhotoIndex: 1 = front (1st photo), 2 = side (2nd photo).
+    const job = await createTryOnJob(
+      productId,
+      fittingProfileVersionId,
+      product.imageUrl ?? undefined,
+      profilePhotoIndex ?? 1
+    );
     const jobId = job.jobId ?? job.job_id;
     if (typeof jobId !== "number" || !Number.isInteger(jobId)) {
       sendResponse({ ok: false, error: "Invalid job" });

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { createProfile, createProfileVersion, getMyProfile, getMyProfileVersions, setDefaultVersion } from "@/lib/api";
 import type { FitPreference, FittingProfileVersion, MyProfileResponse } from "@/lib/api/types";
 import {
-  ArchiveSection,
   FittingVersionDisplay,
   FittingVersionForm,
   ProfileForm,
@@ -112,15 +111,19 @@ export default function ProfilePage() {
             Add your body metrics and fitting photos. This profile will be used across TRYL.
           </p>
         </div>
+        {user?.invite_code && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="text-sm font-medium text-gray-700">Your invite code</p>
+            <p className="mt-1 font-mono text-lg font-semibold text-gray-900">{user.invite_code}</p>
+            <p className="mt-1 text-xs text-gray-500">Share this code so others can sign up.</p>
+          </div>
+        )}
         <ProfileForm onSubmit={handleCreateProfile} disabled={submitting} />
       </div>
     );
   }
 
-  const { profile, default_version, plan } = state.data;
-  const versions = state.versions ?? [];
-  const activeId = default_version?.id ?? null;
-  const archived = versions.filter((v) => v.id !== activeId);
+  const { default_version } = state.data;
 
   return (
     <div className="space-y-8">
@@ -131,37 +134,71 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {default_version ? (
-        <FittingVersionDisplay
-          version={default_version}
-          onOpenFittingPhotos={() => setFittingModalOpen(true)}
-        />
-      ) : (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
-          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Active fitting profile version</h2>
-              <p className="mt-1 text-sm text-gray-600">
-                No fitting photos yet. Add your mirror shots to power try-on.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFittingModalOpen(true)}
-              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
-            >
-              Add fitting photos
-            </button>
-          </div>
+      {user?.invite_code && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <p className="text-sm font-medium text-gray-700">Your invite code</p>
+          <p className="mt-1 font-mono text-lg font-semibold text-gray-900">{user.invite_code}</p>
+          <p className="mt-1 text-xs text-gray-500">Share this code so others can sign up.</p>
         </div>
       )}
 
-      {/* Archive section (shows PRO lock for free tier) */}
-      <ArchiveSection
-        plan={plan}
-        archived={archived}
-        onRequireUpgrade={() => setUpgradeOpen(true)}
-      />
+      <div className={default_version ? "grid gap-4 lg:grid-cols-2" : ""}>
+        {default_version ? (
+          <FittingVersionDisplay
+            version={default_version}
+            onOpenFittingPhotos={() => setFittingModalOpen(true)}
+          />
+        ) : (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Active fitting profile version</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  No fitting photos yet. Add your mirror shots to power try-on.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFittingModalOpen(true)}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+              >
+                Add fitting photos
+              </button>
+            </div>
+          </div>
+        )}
+
+        {default_version && (
+          <button
+            type="button"
+            onClick={() => setUpgradeOpen(true)}
+            className="relative flex min-h-[200px] flex-col rounded-lg border border-dashed border-gray-300 bg-gray-50/80 p-6 text-left transition hover:border-amber-400"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Saved versions</h2>
+              <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                PRO
+              </span>
+            </div>
+            <div className="grid flex-1 grid-cols-2 gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="rounded bg-gray-200/90 p-2">
+                  <div className="aspect-[3/4] rounded bg-gray-300/90" />
+                </div>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/90 text-white">
+                  🔒
+                </span>
+                <p className="text-sm font-medium text-white">PRO archive</p>
+                <p className="text-xs text-white/70">More versions & history — coming soon</p>
+              </div>
+            </div>
+          </button>
+        )}
+      </div>
 
       <ProUpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
 

@@ -6,6 +6,10 @@ const USER_KEY = "tryl_user";
 export interface AuthUser {
   id: string;
   email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  invite_code?: string | null;
+  referral_count?: number;
 }
 
 export interface Session {

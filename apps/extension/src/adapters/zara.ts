@@ -408,10 +408,7 @@ export const zaraAdapter: SiteAdapter = {
       priceText = priceEl?.textContent?.replace(/\s+/g, " ").trim() || null;
     }
 
-    // Sizes: prefer DOM (and open dropdown if needed) so soldOut is accurate; fallback to embedded data.
-    let sizes = getSizesFromDom();
-    if (sizes.length === 0) sizes = await getSizesByOpeningDropdown();
-    if (sizes.length === 0) sizes = getSizesFromEmbeddedData();
+    // Sizes: excluded. No dropdown click or size collection (avoids accidentally triggering Zara UI).
 
     // Brand is fixed for Zara.
     const brand = "Zara";
@@ -429,7 +426,6 @@ export const zaraAdapter: SiteAdapter = {
       title,
       imageUrl,
       imageUrls,
-      sizes: sizes.length > 0 ? sizes : undefined,
       priceText: priceText || undefined,
       brand,
       categoryHint: categoryHint || undefined,

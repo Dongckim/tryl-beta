@@ -9,7 +9,7 @@ from app.db.connection import get_connection, with_transaction
 _JOB_PROJECTION = """
     id, user_id, product_id, fitting_profile_version_id, status,
     provider, cache_key, error_message, created_at, completed_at,
-    override_product_image_url
+    override_product_image_url, profile_photo_index
 """
 
 _RESULT_PROJECTION = """
@@ -23,8 +23,9 @@ def create_tryon_job(
     fitting_profile_version_id: int,
     *,
     override_product_image_url: str | None = None,
+    profile_photo_index: int = 1,
 ) -> dict:
-    """Create a try-on job with status 'queued'. Returns the created row."""
+    """Create a try-on job with status 'queued'. Returns the created row. profile_photo_index: 1=front, 2=side."""
     with with_transaction() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -34,12 +35,13 @@ def create_tryon_job(
                     product_id,
                     fitting_profile_version_id,
                     status,
-                    override_product_image_url
+                    override_product_image_url,
+                    profile_photo_index
                 )
-                VALUES (%s, %s, %s, 'queued', %s)
+                VALUES (%s, %s, %s, 'queued', %s, %s)
                 RETURNING {_JOB_PROJECTION}
                 """,
-                (user_id, product_id, fitting_profile_version_id, override_product_image_url),
+                (user_id, product_id, fitting_profile_version_id, override_product_image_url, profile_photo_index),
             )
             row = cur.fetchone()
             assert row is not None
@@ -59,6 +61,22 @@ def get_tryon_job_by_id(job_id: int) -> dict | None:
                 (job_id,),
             )
             return cur.fetchone()
+
+
+def count_tryon_jobs_by_user(user_id: int) -> int:
+    """Count try-on jobs created by this user (all-time). Used for beta per-account limit."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) AS count FROM tryon_jobs WHERE user_id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return 0
+            # row_factory=dict_row returns a dict, so access by column name
+            count = row.get("count")
+            return int(count) if count is not None else 0
 
 
 def get_tryon_result_by_id(result_id: int) -> dict | None:

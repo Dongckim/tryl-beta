@@ -111,12 +111,20 @@ export default function LandingPage() {
               className="mt-12 flex flex-wrap gap-4"
             >
               {user ? (
-                <Link
-                  href="/profile"
-                  className="inline-flex rounded-sm border border-white/30 bg-white/5 px-8 py-3.5 text-sm font-medium text-white transition hover:bg-white/10"
-                >
-                  Go to Profile
-                </Link>
+                <>
+                  <Link
+                    href="/profile"
+                    className="inline-flex rounded-sm border border-white/30 bg-white/5 px-8 py-3.5 text-sm font-medium text-white transition hover:bg-white/10"
+                  >
+                    Go to Profile
+                  </Link>
+                  <Link
+                    href="/closet"
+                    className="inline-flex rounded-sm border border-white/20 px-8 py-3.5 text-sm font-medium text-white/80 transition hover:text-white"
+                  >
+                    View Closet
+                  </Link>
+                </>
               ) : (
                 <>
                   <button
@@ -131,14 +139,14 @@ export default function LandingPage() {
                   >
                     Sign In
                   </Link>
+                  <Link
+                    href="/how-it-works"
+                    className="inline-flex rounded-sm border border-white/20 px-8 py-3.5 text-sm font-medium text-white/80 transition hover:text-white"
+                  >
+                    How it works
+                  </Link>
                 </>
               )}
-              <Link
-                href="/closet"
-                className="inline-flex rounded-sm border border-white/20 px-8 py-3.5 text-sm font-medium text-white/80 transition hover:text-white"
-              >
-                View Closet
-              </Link>
             </motion.div>
           </div>
         </div>

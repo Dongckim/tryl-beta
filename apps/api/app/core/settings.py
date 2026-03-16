@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
     redis_url: str | None = None
     tryon_queue_name: str = "tryon:jobs"
+    # Beta: per-account try-on limit (Gemini). Set via BETA_TRYON_LIMIT env.
+    beta_tryon_limit: int = 20
     storage_backend: str = "local"  # local | s3
     storage_base_path: str = "./storage"
     storage_base_url: str = "https://storage.tryl.local"
@@ -33,6 +35,9 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = ""  # .env: AWS_SECRET_ACCESS_KEY
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     api_base_url: str = "http://localhost:8001"
+    # Resend (email verification). Optional in dev; set for production.
+    resend_api_key: str = ""
+    email_from: str = "verify@tryl.me"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

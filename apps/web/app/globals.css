@@ -30,3 +30,46 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: none;
 }
+
+/* Nav user menu panel */
+@keyframes nav-panel-open {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes nav-panel-close {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+.animate-nav-panel-open {
+  animation: nav-panel-open 0.2s ease-out forwards;
+}
+.animate-nav-panel-close {
+  animation: nav-panel-close 0.15s ease-in forwards;
+}
+
+/* Guide hero: scroll-down dot */
+@keyframes scroll-dot {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(8px);
+    opacity: 0.5;
+  }
+}
+.animate-scroll-dot {
+  animation: scroll-dot 2s ease-in-out infinite;
+}

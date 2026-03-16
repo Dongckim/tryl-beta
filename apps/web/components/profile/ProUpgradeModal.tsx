@@ -16,6 +16,12 @@ export function ProUpgradeModal({ open, onClose }: ProUpgradeModalProps) {
           The current beta supports one fitting profile (2 photos) per user.
           We&apos;ll unlock more versions and a deeper archive with TRYL PRO soon.
         </p>
+        <p className="mt-3 text-sm text-gray-600">
+          To change your fitting profile during beta, contact:{" "}
+          <a href="mailto:dck.alx@gmail.com" className="font-medium text-black underline">
+            dck.alx@gmail.com
+          </a>
+        </p>
         <div className="mt-4 flex justify-end gap-3">
           <button
             type="button"

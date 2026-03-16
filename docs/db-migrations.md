@@ -9,10 +9,20 @@ This repo uses plain SQL migrations under `apps/api/db/migrations/`.
 
 ### How to run
 
-From your terminal, with `DATABASE_URL` set:
+From your terminal, with `DATABASE_URL` set (e.g. from `apps/api/.env`):
 
 ```bash
+cd /path/to/tryl
+# If using apps/api/.env: export $(grep -v '^#' apps/api/.env | xargs)
 psql "$DATABASE_URL" -f apps/api/db/migrations/<migration>.sql
+```
+
+### Try-on jobs: profile_photo_index (003)
+
+If you see `column "profile_photo_index" of relation "tryon_jobs" does not exist` when creating a try-on job, run:
+
+```bash
+psql "$DATABASE_URL" -f apps/api/db/migrations/003_add_tryon_jobs_profile_photo_index.sql
 ```
 
 ### Pinned looks migration (slot-based pins)

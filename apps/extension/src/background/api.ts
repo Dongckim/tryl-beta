@@ -151,7 +151,8 @@ export async function resolveProduct(
 export async function createTryOnJob(
   productId: number,
   fittingProfileVersionId?: number | null,
-  productImageUrlOverride?: string | null
+  productImageUrlOverride?: string | null,
+  profilePhotoIndex?: 1 | 2
 ): Promise<CreateTryOnJobResponse> {
   if (typeof productId !== "number" || !Number.isInteger(productId)) {
     throw new Error("Invalid productId");
@@ -162,6 +163,9 @@ export async function createTryOnJob(
   }
   if (productImageUrlOverride) {
     body.productImageUrlOverride = productImageUrlOverride;
+  }
+  if (profilePhotoIndex === 1 || profilePhotoIndex === 2) {
+    body.profilePhotoIndex = profilePhotoIndex;
   }
   return apiFetch<CreateTryOnJobResponse>("/tryon/jobs", {
     method: "POST",

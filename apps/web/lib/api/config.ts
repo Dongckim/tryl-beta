@@ -1,4 +1,4 @@
-/** Backend API base URL. Set NEXT_PUBLIC_API_BASE_URL (배포 시 API 서버 IP:8000 또는 도메인) */
+/** Backend API base URL. 기본값은 배포 도메인 https://api.tryl.me */
 export const API_BASE_URL =
   (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) ||
-  "http://localhost:8000";
+  "https://api.tryl.me";

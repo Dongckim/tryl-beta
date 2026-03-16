@@ -9,17 +9,27 @@ interface FittingVersionDisplayProps {
 
 export function FittingVersionDisplay({ version, onOpenFittingPhotos }: FittingVersionDisplayProps) {
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold">Active fitting profile version</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Your current 1st and 2nd photos that power virtual try-on.
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <p className="mb-1 text-sm font-medium text-gray-500">1st photo</p>
-          <div className="aspect-[3/4] overflow-hidden rounded border bg-gray-100">
+          <h2 className="text-base font-semibold text-gray-900 sm:text-lg">
+            Active fitting profile version
+          </h2>
+          <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
+            1st & 2nd photos for try-on
+          </p>
+        </div>
+        <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-[10px] text-gray-500">
+          #{version.id}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:gap-6">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
+            1st photo
+          </p>
+          <div className="aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:max-w-[240px]">
             {version.front_image_url ? (
               <img
                 src={version.front_image_url}
@@ -27,15 +37,17 @@ export function FittingVersionDisplay({ version, onOpenFittingPhotos }: FittingV
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-gray-400">
+              <div className="flex h-full items-center justify-center text-xs text-gray-400">
                 No image
               </div>
             )}
           </div>
         </div>
-        <div>
-          <p className="mb-1 text-sm font-medium text-gray-500">2nd photo</p>
-          <div className="aspect-[3/4] overflow-hidden rounded border bg-gray-100">
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
+            2nd photo
+          </p>
+          <div className="aspect-[3/4] w-full max-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-gray-100 sm:max-w-[240px]">
             {version.side_image_url ? (
               <img
                 src={version.side_image_url}
@@ -43,27 +55,34 @@ export function FittingVersionDisplay({ version, onOpenFittingPhotos }: FittingV
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-gray-400">
+              <div className="flex h-full items-center justify-center text-xs text-gray-400">
                 No image
               </div>
             )}
           </div>
         </div>
       </div>
-      <p className="mt-2 text-xs text-gray-500">Version ID: {version.id}</p>
 
       {onOpenFittingPhotos && (
-        <div className="mt-4">
+        <div className="mt-5 pt-4 border-t border-gray-100">
           <button
             type="button"
             onClick={onOpenFittingPhotos}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-black via-neutral-900 to-black px-5 py-2.5 text-sm font-medium text-white shadow-[0_10px_30px_rgba(15,23,42,0.35)] ring-1 ring-white/10 transition hover:from-neutral-900 hover:via-black hover:to-neutral-900 hover:ring-gold/60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-black"
           >
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gold/90 text-[10px] font-semibold text-black">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-[10px] font-semibold">
               2
             </span>
-            <span className="tracking-[0.18em] uppercase">Update fitting photos</span>
+            <span className="tracking-[0.12em] uppercase">Update fitting photos</span>
           </button>
+          <div className="mt-6 rounded-lg bg-gray-50 px-4 py-4 sm:px-5 sm:py-5">
+            <p className="text-sm leading-relaxed text-gray-700">
+              Choose the best photo for each virtual try-on and load more versions whenever you want.
+            </p>
+            <p className="mt-2 text-sm font-medium text-gray-900">
+              With <span className="text-amber-700">PRO</span>, you get multiple saved versions and can pick the one that works best for every look.
+            </p>
+          </div>
         </div>
       )}
     </div>

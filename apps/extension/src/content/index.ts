@@ -1,6 +1,5 @@
 import { getAdapterForUrl } from "../adapters";
 import type { ExtractedProduct } from "../adapters";
-import { initFAB, updateFABVisibility } from "./fab";
 
 const DEBUG = import.meta.env.DEV;
 
@@ -63,9 +62,7 @@ export async function runProductDetection(): Promise<ExtractedProduct | null> {
   }
 }
 
-// FAB: init once with getter, then show/hide after each detection.
-initFAB(getCurrentProduct);
-runProductDetection().then(() => updateFABVisibility());
+runProductDetection();
 
 // Popup requests current product via messaging.
 chrome.runtime.onMessage.addListener(

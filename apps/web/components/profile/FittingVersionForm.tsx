@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import type { UserPlan } from "@/lib/api/types";
 
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"] as const;
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB per photo
+const ACCEPT_ATTRIBUTE = "image/jpeg,image/png,.jpg,.jpeg,.png";
+
 interface FittingVersionFormProps {
   onSubmit: (data: { front_image_url: string; side_image_url: string }) => Promise<void>;
   disabled?: boolean;
@@ -51,8 +55,12 @@ export function FittingVersionForm({
       setPreview(null);
       return;
     }
-    if (!file.type.startsWith("image/")) {
-      setError(`${role} must be an image (JPEG, PNG)`);
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_TYPES)[number])) {
+      setError("Only JPEG and PNG are allowed. HEIC and other formats are not supported.");
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError("Each photo must be 5MB or smaller.");
       return;
     }
     setError("");
@@ -102,6 +110,10 @@ export function FittingVersionForm({
         </div>
       </div>
 
+      <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+        <strong>Upload rules:</strong> Allowed formats: JPEG, PNG. Max 5MB per photo. HEIC is not supported.
+      </div>
+
       {betaLocked && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           Beta limit reached: you already created your 1st and 2nd fitting photos. You&apos;ll be
@@ -135,11 +147,11 @@ export function FittingVersionForm({
           >
             <input
               type="file"
-              accept="image/*"
+              accept={ACCEPT_ATTRIBUTE}
               className="absolute inset-0 cursor-pointer opacity-0"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                handleFile(f ?? null, setFrontFile, setFrontPreview, "Front");
+                handleFile(f ?? null, setFrontFile, setFrontPreview, "1st photo");
               }}
             />
             {frontPreview ? (
@@ -185,7 +197,7 @@ export function FittingVersionForm({
           >
             <input
               type="file"
-              accept="image/*"
+              accept={ACCEPT_ATTRIBUTE}
               className="absolute inset-0 cursor-pointer opacity-0"
               onChange={(e) => {
                 const f = e.target.files?.[0];

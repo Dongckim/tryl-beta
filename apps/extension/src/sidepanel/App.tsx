@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TRYL_WEB_BASE_URL } from "../background/config";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -11,6 +12,8 @@ type ViewState =
       jobId: number;
       productTitle: string;
       resultImageUrl: string;
+      completedAt: string;
+      jobCreatedAt: string;
     }
   | { view: "failed"; errorMessage: string };
 
@@ -21,6 +24,34 @@ function send<T>(message: unknown): Promise<T> {
       else resolve(response);
     });
   });
+}
+
+function formatCompletedAt(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString("en-US", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function formatDurationMs(completedAt: string, jobCreatedAt: string): string {
+  try {
+    const end = new Date(completedAt).getTime();
+    const start = new Date(jobCreatedAt).getTime();
+    if (Number.isNaN(end) || Number.isNaN(start) || end < start) return "";
+    const sec = Math.round((end - start) / 1000);
+    if (sec < 60) return `${sec}s`;
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  } catch {
+    return "";
+  }
 }
 
 export function App() {
@@ -42,15 +73,23 @@ export function App() {
         const res = await send<{
           status: string;
           error_message?: string;
-          result?: { id: number; result_image_url: string };
+          result?: {
+            id: number;
+            result_image_url: string;
+            created_at: string;
+            job_created_at?: string;
+          };
         }>({ type: "GET_JOB_STATUS", jobId });
         if (res.status === "completed" && res.result) {
           stopPolling();
+          const jobCreatedAt = res.result.job_created_at ?? res.result.created_at;
           setState({
             view: "completed",
             jobId,
             productTitle,
             resultImageUrl: res.result.result_image_url,
+            completedAt: res.result.created_at ?? new Date().toISOString(),
+            jobCreatedAt,
           });
         } else if (res.status === "failed") {
           stopPolling();
@@ -168,10 +207,17 @@ export function App() {
         {(state.view === "queued" || state.view === "processing") && (
           <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden">
             <div className="p-3 border-b border-white/5 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/20 text-accent text-xs font-medium animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                {state.view === "processing" ? "Try-on in progress…" : "Queued…"}
-              </span>
+              {state.view === "queued" ? (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-500/20 text-slate-400 text-xs font-medium animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                  Queued…
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/20 text-accent text-xs font-medium animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                  Try-on in progress…
+                </span>
+              )}
             </div>
             <div className="p-4">
               <p className="text-sm text-white/90 truncate">{state.productTitle}</p>
@@ -194,13 +240,28 @@ export function App() {
                   Completed
                 </span>
               </div>
-              <p className="px-4 pt-2 text-xs text-gray-500 truncate">{state.productTitle}</p>
-              <div className="p-4">
+              <div className="px-4 pt-3">
+                <h2 className="text-base font-bold text-white leading-tight line-clamp-2">
+                  {state.productTitle}
+                </h2>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  {formatCompletedAt(state.completedAt)}
+                  {formatDurationMs(state.completedAt, state.jobCreatedAt) && (
+                    <span className="ml-1.5 text-gray-400">
+                      · {formatDurationMs(state.completedAt, state.jobCreatedAt)}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <div className="p-4 pt-2">
                 <img
                   src={state.resultImageUrl}
                   alt="Try-on result"
                   className="w-full rounded-lg border border-white/10 object-cover"
                 />
+                <p className="text-xs text-gray-400 mt-2.5 pt-2.5 border-t border-white/5 leading-snug">
+                  Sizes are not guaranteed—use as visual reference only.
+                </p>
               </div>
             </div>
             {saved ? (
@@ -217,6 +278,24 @@ export function App() {
                 {saving ? "Saving…" : "Save Look"}
               </button>
             )}
+            <div className="flex gap-2">
+              <a
+                href={`${TRYL_WEB_BASE_URL}/profile`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 px-3 rounded-xl font-medium text-sm text-white/90 border border-white/20 bg-white/5 hover:bg-white/10 text-center transition-all"
+              >
+                Profile
+              </a>
+              <a
+                href={`${TRYL_WEB_BASE_URL}/closet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 px-3 rounded-xl font-medium text-sm text-white/90 border border-white/20 bg-white/5 hover:bg-white/10 text-center transition-all"
+              >
+                Closet
+              </a>
+            </div>
           </div>
         )}
       </main>

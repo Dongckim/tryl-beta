@@ -18,6 +18,12 @@ python main.py
 python -m worker.main
 ```
 
+**If try-on stays at "Queued…"** — the worker is not running or cannot reach Redis/DB:
+
+1. **Redis** must be running (e.g. `docker compose up -d redis` or local Redis on 6379).
+2. **API** must have `REDIS_URL` set in `apps/api/.env` (e.g. `REDIS_URL=redis://localhost:6379/0`), otherwise jobs are never pushed to the queue.
+3. **Start the worker** in a separate terminal: `cd apps/worker && python -m worker.main`. You should see `Worker started, listening on queue tryon:jobs`.
+
 ## Env
 
 - `DATABASE_URL` — PostgreSQL connection string (default: `postgresql://localhost/tryl`)

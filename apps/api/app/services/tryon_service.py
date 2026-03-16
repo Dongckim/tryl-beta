@@ -2,6 +2,7 @@
 
 from typing import TypedDict
 
+from app.core.settings import settings
 from app.services.queue import enqueue_tryon_job
 from app.services.temp_results import get_temp_result
 from app.db import (
@@ -18,6 +19,11 @@ class CurrentUser(TypedDict):
     email: str
 
 
+class BetaLimitReachedError(Exception):
+    """Raised when the account has reached the beta try-on limit."""
+    pass
+
+
 def _resolve_user_id(user: CurrentUser) -> int:
     """Resolve current user to DB user_id."""
     row = users_repo.get_or_create_user(user["email"])
@@ -30,6 +36,7 @@ def create_tryon_job(
     fitting_profile_version_id: int | None = None,
     *,
     product_image_url_override: str | None = None,
+    profile_photo_index: int = 1,
 ) -> dict | None:
     """
     Create a try-on job.
@@ -39,8 +46,13 @@ def create_tryon_job(
     user's default/active fitting profile version.
 
     Returns job dict with id and status, or None if profile/version/product missing.
+    Raises BetaLimitReachedError if account has reached beta_tryon_limit.
     """
     user_id = _resolve_user_id(user)
+    count = tryon_repo.count_tryon_jobs_by_user(user_id)
+    if count >= settings.beta_tryon_limit:
+        raise BetaLimitReachedError()
+
     profile = user_profile_repo.get_profile_by_user_id(user_id)
     if profile is None:
         return None
@@ -71,6 +83,7 @@ def create_tryon_job(
         product_id=product_id,
         fitting_profile_version_id=version["id"],
         override_product_image_url=product_image_url_override,
+        profile_photo_index=profile_photo_index,
     )
     if job:
         enqueue_tryon_job(job["id"])

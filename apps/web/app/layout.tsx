@@ -4,6 +4,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { DesktopOnlyOverlay } from "@/components/DesktopOnlyOverlay";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
+import { PageTransition } from "@/components/PageTransition";
+import { WelcomeModal } from "@/components/WelcomeModal";
 import "./globals.css";
 
 const inter = Inter({
@@ -43,8 +45,11 @@ export default function RootLayout({
       <body className="min-h-screen bg-black font-sans antialiased">
         <AuthProvider>
           <DesktopOnlyOverlay />
+          <WelcomeModal />
           <Nav />
-          <main className="min-h-screen overflow-x-hidden pt-16">{children}</main>
+          <main className="min-h-screen overflow-x-hidden pt-16">
+          <PageTransition>{children}</PageTransition>
+        </main>
           <Footer />
         </AuthProvider>
       </body>

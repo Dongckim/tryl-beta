@@ -32,7 +32,8 @@ def process_tryon_job(tryon_job_id: int) -> None:
             _fail(tryon_job_id, "Product or fitting profile not found")
             return
 
-        provider_input = _build_provider_input(profile, product)
+        profile_photo_index = job.get("profile_photo_index") or 1
+        provider_input = _build_provider_input(profile, product, profile_photo_index=profile_photo_index)
         provider = get_provider(tryon_job_id)
         output = provider.generate(provider_input)
 
@@ -41,8 +42,14 @@ def process_tryon_job(tryon_job_id: int) -> None:
         _fail(tryon_job_id, _format_error(e))
 
 
-def _build_provider_input(profile: dict, product: dict, mode: str = "final") -> TryOnInput:
-    """Build provider input from DB rows."""
+def _build_provider_input(
+    profile: dict,
+    product: dict,
+    *,
+    mode: str = "final",
+    profile_photo_index: int = 1,
+) -> TryOnInput:
+    """Build provider input from DB rows. profile_photo_index: 1=front, 2=side."""
     fitting_profile = FittingProfileImages(
         front_image_url=profile["front_image_url"],
         side_image_url=profile["side_image_url"],
@@ -50,10 +57,14 @@ def _build_provider_input(profile: dict, product: dict, mode: str = "final") -> 
         front_mask_url=profile.get("front_mask_url"),
         side_mask_url=profile.get("side_mask_url"),
     )
+    person_image_url = (
+        profile["side_image_url"] if profile_photo_index == 2 else profile["front_image_url"]
+    )
     return TryOnInput(
         fitting_profile=fitting_profile,
         product_image_url=product["image_url"],
         mode=mode,
+        person_image_url=person_image_url,
         product_title=product.get("title"),
         product_brand=product.get("brand"),
         product_category=product.get("category"),

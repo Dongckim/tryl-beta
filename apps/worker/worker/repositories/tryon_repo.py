@@ -13,7 +13,8 @@ def get_tryon_job_by_id(job_id: int) -> dict | None:
             cur.execute(
                 """
                 SELECT id, user_id, product_id, fitting_profile_version_id, status,
-                       provider, cache_key, error_message, created_at, completed_at
+                       provider, cache_key, error_message, created_at, completed_at,
+                       COALESCE(profile_photo_index, 1) AS profile_photo_index
                 FROM tryon_jobs
                 WHERE id = %s
                 """,
@@ -155,7 +156,8 @@ def claim_queued_job(job_id: int) -> dict | None:
                 SET status = 'processing'
                 WHERE id = %s AND status = 'queued'
                 RETURNING id, user_id, product_id, fitting_profile_version_id, status,
-                          provider, cache_key, error_message, created_at, completed_at
+                          provider, cache_key, error_message, created_at, completed_at,
+                          COALESCE(profile_photo_index, 1) AS profile_photo_index
                 """,
                 (job_id,),
             )

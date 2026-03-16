@@ -25,6 +25,8 @@ class TryOnInput:
     fitting_profile: FittingProfileImages
     product_image_url: str
     mode: GenerationMode = "final"
+    # When set, provider uses this as the person image (e.g. front vs side).
+    person_image_url: str | None = None
     # From parsed Zara product (for prompt)
     product_title: str | None = None
     product_brand: str | None = None

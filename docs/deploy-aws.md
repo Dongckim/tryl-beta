@@ -323,7 +323,28 @@ sudo docker compose -f docker-compose.ec2-api.yml up -d
 
 ---
 
-## 10. 트러블슈팅
+## 10. Extension (Chrome) EC2 배포
+
+Extension은 서버가 아니라 **로컬에서 빌드한 뒤 Chrome에 로드**하는 방식입니다. EC2 API를 쓰려면 **빌드 시점**에 API URL을 넣어야 합니다.
+
+1. **apps/extension** 에 `.env` 생성 (또는 `.env.example` 복사 후 수정)
+2. **API 서버 주소** 설정:
+   ```env
+   VITE_API_BASE_URL=http://<API-EC2-퍼블릭-IP>:8000
+   ```
+   또는 도메인 사용 시: `VITE_API_BASE_URL=https://api.yourdomain.com`
+3. **빌드**:
+   ```bash
+   cd apps/extension
+   pnpm build
+   ```
+4. Chrome에서 `apps/extension/dist` 폴더를 **압축 해제된 확장 프로그램으로 로드**.
+
+`manifest.json`의 `host_permissions`에는 이미 `http://localhost:8000/*`, `http://*:8000/*`가 포함되어 있어서, 위 URL로 빌드하면 EC2 API 호출이 가능합니다. API 서버 CORS는 `chrome-extension://` origin을 regex로 허용하고 있습니다.
+
+---
+
+## 11. 트러블슈팅
 
 ### `KeyError: 'ContainerConfig'` (web 재생성 시)
 

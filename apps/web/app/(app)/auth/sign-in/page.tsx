@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthError } from "@/lib/api/auth";
 
 export default function SignInPage() {
   const { signIn } = useAuth();
@@ -21,6 +22,10 @@ export default function SignInPage() {
       await signIn(email, password);
       router.push("/profile");
     } catch (err) {
+      if (err instanceof AuthError && err.code === "email_not_verified") {
+        router.push(`/auth/verify?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+        return;
+      }
       setError(err instanceof Error ? err.message : "Sign in failed");
     } finally {
       setLoading(false);
