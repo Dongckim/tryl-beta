@@ -3,6 +3,12 @@
   "name": "Tryl",
   "version": "0.0.1",
   "description": "AI fashion try-on — try on clothes from supported stores",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": ["storage", "activeTab", "tabs", "sidePanel", "scripting"],
   "host_permissions": [
     "https://*.zara.com/*",
@@ -15,7 +21,11 @@
   ],
   "action": {
     "default_popup": "src/popup/index.html",
-    "default_title": "Tryl"
+    "default_title": "Tryl",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
   },
   "side_panel": {
     "default_path": "src/sidepanel/index.html"
