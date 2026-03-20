@@ -52,16 +52,29 @@ def build_tryon_prompt(
     title = (product_title or "the garment").strip()
     category = (product_category or "clothing").strip()
 
-    parts = [
-        "Identity lock has higher priority than garment fidelity. If conflict occurs, preserve identity exactly and reduce garment transformation.",
-        f"[Task] Virtual try-on: Replace ONLY the {category} on the person with the {brand} {title}.",
-        "[Garment Rules] Use the item image as the ABSOLUTE source of truth for shape, cut, and texture. Fully replace the old garment structure to match the item image exactly in silhouette and construction. When the new garment exposes more skin (e.g., short sleeves, shorts, shorter skirt), remove the old garment in those areas and render bare skin that matches the person's original skin tone. No overlay of the old garment is allowed, and no color bleed from the original garment is allowed.",
-        "Do not add or invent distressing, rips, tears, holes, fraying, whiskering, fades, or stains that are not clearly visible in the garment reference image. Only reproduce distressing that is visually present in the garment image. If the garment image shows no visible rips or tears, the output garment must have zero rips or tears — regardless of what the product title or description says. Treat the garment reference image as the single source of truth for surface details.",
-        "Match the garment's color, wash, and material appearance to the garment reference image as closely as possible (hue, saturation, value). The final garment color must override and replace the original clothing color in the edited region. Do not recolor, apply filters, add cinematic grading, or change the lighting style. Keep the overall photo exposure and white balance consistent with the original person photo. No stylization.",
-        "[Identity Preservation - CRITICAL] PROTECT IDENTITY: The person's face, features, hair, and body proportions must remain 100% IDENTICAL to the source photo. The person image is the only identity source. The garment image is only a clothing reference; do not copy or blend any face, skin, hair, body, or pose cues from the garment image model. Do not edit, regenerate, beautify, or alter the face in any way. No face-swapping, no skin smoothing, no de-aging, no makeup changes, and no alteration of facial geometry. Keep the original background, lighting, and pose unchanged. Only the pixels corresponding to the target garment area and newly exposed skin may be modified. Hands and fingers must remain anatomically correct and unchanged except where necessarily occluded by the new garment.",
-    ]
-
-    return " ".join(parts)
+    return (
+        f"[Image 1] = Person photo (identity source). [Image 2] = Garment reference (clothing source).\n"
+        f"\n"
+        f"TASK: Virtual try-on. Replace ONLY the {category} on the person in Image 1 with the {brand} {title} from Image 2.\n"
+        f"\n"
+        f"GARMENT RULES:\n"
+        f"- Image 2 is the SOLE source of truth for garment shape, silhouette, cut, texture, color, and surface details.\n"
+        f"- Fully replace the original garment's pixels (including edges, seams, shadows) with the new garment from Image 2.\n"
+        f"- Match color/wash/material exactly to Image 2 (hue, saturation, value). Zero ghosting or tonal blending from the original garment.\n"
+        f"- Where the new garment exposes more skin (e.g., shorter sleeves/hem), render bare skin matching the person's skin tone.\n"
+        f"- Reproduce ONLY details visible in Image 2: no invented distressing, rips, logos, text, or prints. If not visible in Image 2, omit it.\n"
+        f"\n"
+        f"IDENTITY RULES (HIGHEST PRIORITY — overrides garment fidelity if conflict):\n"
+        f"- Face, hair, body proportions, pose, and skin must remain pixel-identical to Image 1.\n"
+        f"- Image 2 is clothing-only reference; ignore any face/body/pose cues from it.\n"
+        f"- No face editing, smoothing, de-aging, makeup changes, or geometry alteration.\n"
+        f"- Hands/fingers remain anatomically correct and unchanged.\n"
+        f"\n"
+        f"SCENE RULES:\n"
+        f"- Keep original background, lighting, exposure, and white balance from Image 1.\n"
+        f"- No filters, cinematic grading, stylization, or watermarks.\n"
+        f"- Only modify pixels in the target garment area and newly exposed skin."
+    )
 
 
 class NanoBananaProvider:

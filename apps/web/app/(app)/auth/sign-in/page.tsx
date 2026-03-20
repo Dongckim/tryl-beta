@@ -6,6 +6,29 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthError } from "@/lib/api/auth";
 
+function getSignInErrorMessage(err: unknown): string {
+  if (!(err instanceof AuthError)) {
+    return "Sign-in failed. Please try again.";
+  }
+
+  switch (err.code) {
+    case "invalid_credentials":
+      return "Email or password is incorrect. Please try again.";
+    case "rate_limit_exceeded":
+      return "Too many sign-in attempts. Please wait a moment and try again.";
+    case "email_not_verified":
+      return "Please verify your email first.";
+    default:
+      if (err.status === 401) {
+        return "Email or password is incorrect. Please try again.";
+      }
+      if (err.status === 429) {
+        return "Too many sign-in attempts. Please wait a moment and try again.";
+      }
+      return "Sign-in failed. Please try again.";
+  }
+}
+
 export default function SignInPage() {
   const { signIn } = useAuth();
   const router = useRouter();
@@ -26,7 +49,7 @@ export default function SignInPage() {
         router.push(`/auth/verify?email=${encodeURIComponent(email.trim().toLowerCase())}`);
         return;
       }
-      setError(err instanceof Error ? err.message : "Sign in failed");
+      setError(getSignInErrorMessage(err));
     } finally {
       setLoading(false);
     }

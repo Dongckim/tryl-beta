@@ -157,7 +157,29 @@ def claim_queued_job(job_id: int) -> dict | None:
                 WHERE id = %s AND status = 'queued'
                 RETURNING id, user_id, product_id, fitting_profile_version_id, status,
                           provider, cache_key, error_message, created_at, completed_at,
-                          COALESCE(profile_photo_index, 1) AS profile_photo_index
+                          COALESCE(profile_photo_index, 1) AS profile_photo_index,
+                          COALESCE(retry_count, 0) AS retry_count
+                """,
+                (job_id,),
+            )
+            return cur.fetchone()
+
+
+def requeue_job_for_retry(job_id: int) -> dict | None:
+    """
+    Reset a processing/failed job back to 'queued' and increment retry_count.
+    Returns the updated row, or None if job not found.
+    """
+    with with_transaction() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE tryon_jobs
+                SET status = 'queued',
+                    retry_count = COALESCE(retry_count, 0) + 1,
+                    error_message = NULL
+                WHERE id = %s
+                RETURNING id, retry_count
                 """,
                 (job_id,),
             )

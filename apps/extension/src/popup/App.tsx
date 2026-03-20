@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { listProfileVersions, signIn, setAuthToken, type ProfileVersion } from "../background/api";
 import { TRYL_WEB_BASE_URL } from "../background/config";
 import { clearSession, getSession, setSession, type Session } from "../lib/session";
@@ -530,6 +530,32 @@ function RecentArchives({
   onClear: () => void;
   onDelete: (id: string) => void;
 }) {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const maxScrollLeft = el.scrollWidth - el.clientWidth;
+    const epsilon = 4;
+    setCanScrollLeft(el.scrollLeft > epsilon);
+    setCanScrollRight(el.scrollLeft < maxScrollLeft - epsilon);
+  }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    // Re-check after layout/paint (images can affect widths).
+    const t = window.setTimeout(updateScrollState, 50);
+    return () => window.clearTimeout(t);
+  }, [items, updateScrollState]);
+
+  function scrollByAmount(dir: -1 | 1) {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 280, behavior: "smooth" });
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between px-1 mb-2">
@@ -537,13 +563,33 @@ function RecentArchives({
           Recent Archives
         </h3>
         {items.length > 0 && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="text-[10px] text-gray-500 hover:text-gray-300"
-          >
-            Clear
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => scrollByAmount(-1)}
+              disabled={!canScrollLeft}
+              aria-label="Scroll recent archives left"
+              className="w-6 h-6 rounded-md border border-white/10 text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="text-[14px] leading-none">‹</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollByAmount(1)}
+              disabled={!canScrollRight}
+              aria-label="Scroll recent archives right"
+              className="w-6 h-6 rounded-md border border-white/10 text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="text-[14px] leading-none">›</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-[10px] text-gray-500 hover:text-gray-300 px-1.5 py-1"
+            >
+              Clear
+            </button>
+          </div>
         )}
       </div>
       {items.length === 0 ? (
@@ -552,7 +598,11 @@ function RecentArchives({
           they will appear here.
         </p>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <div
+          ref={scrollerRef}
+          onScroll={updateScrollState}
+          className="flex gap-2 overflow-x-auto pb-1 -mx-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+        >
           {items.map((item) => (
             <button
               key={item.id}

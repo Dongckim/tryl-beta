@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # After this expires, users will no longer be able to view the
     # ephemeral result unless it has been promoted to a saved look.
     temp_result_ttl_seconds: int = 60 * 60  # 1 hour
+    # Job-level retry: max times a failed job is re-queued (0 = no retry).
+    max_job_retries: int = 2
+
+    # Sentry (error tracking). Set SENTRY_DSN in production.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.1
 
 
 settings = Settings()

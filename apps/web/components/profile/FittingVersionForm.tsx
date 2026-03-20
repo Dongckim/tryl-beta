@@ -100,19 +100,14 @@ export function FittingVersionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Fitting photos</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Upload personal mirror shots one by one. 1st and 2nd photos power your try-on.
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-        <strong>Upload rules:</strong> Allowed formats: JPEG, PNG. Max 5MB per photo. HEIC is not supported.
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <ul className="space-y-1.5 text-sm leading-relaxed text-gray-700">
+        <li>• Avoid group photos ONLY YOU in frame</li>
+        <li>• Use a full-body shot with your whole body visible</li>
+        <li>• Use a sharp, front-facing photo with good lighting </li>
+        <li>• Wear fitted clothing for the most accurate result</li>
+        <li>• Keep the background clean and uncluttered</li>
+      </ul>
 
       {betaLocked && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
