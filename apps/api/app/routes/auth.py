@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import rate_limit
 from app.db import users_repo
 from app.schemas.auth import (
     AuthResponse,
@@ -27,29 +28,9 @@ def get_me(current: dict = Depends(get_current_user)) -> AuthUser:
         raise HTTPException(status_code=401, detail="User not found")
     return AuthUser(**get_me_response(user))
 
-# In-memory signup rate limit: IP -> list of timestamps (pruned). Beta: 10/hour.
-_signup_timestamps: dict[str, list[float]] = {}
-_SIGNUP_RATE_LIMIT = 10
-_SIGNUP_RATE_WINDOW = 3600  # 1 hour
-
-
-def _check_signup_rate_limit(ip: str) -> None:
-    """Raise HTTPException 429 if IP over limit."""
-    import time
-    now = time.time()
-    if ip not in _signup_timestamps:
-        _signup_timestamps[ip] = []
-    times = _signup_timestamps[ip]
-    times.append(now)
-    # Prune old
-    cutoff = now - _SIGNUP_RATE_WINDOW
-    _signup_timestamps[ip] = [t for t in times if t > cutoff]
-    if len(_signup_timestamps[ip]) > _SIGNUP_RATE_LIMIT:
-        raise HTTPException(status_code=429, detail="too_many_signup_attempts")
-
 
 @router.post("/sign-in", response_model=AuthResponse)
-def post_sign_in(body: SignInRequest) -> AuthResponse:
+def post_sign_in(body: SignInRequest, _rl=Depends(rate_limit(max_calls=10, window=60))) -> AuthResponse:
     """Sign in with email and password. Requires email_verified=true."""
     try:
         result = sign_in(body.email, body.password)
@@ -62,10 +43,8 @@ def post_sign_in(body: SignInRequest) -> AuthResponse:
 
 
 @router.post("/sign-up", response_model=SignUpResponse)
-def post_sign_up(body: SignUpRequest, request: Request) -> SignUpResponse:
+def post_sign_up(body: SignUpRequest, _rl=Depends(rate_limit(max_calls=10, window=3600))) -> SignUpResponse:
     """Start sign-up. Creates user (unverified), sends 6-digit code to email."""
-    client_ip = request.client.host if request.client else "unknown"
-    _check_signup_rate_limit(client_ip)
     try:
         result = sign_up(
             invite_code=body.invite_code,

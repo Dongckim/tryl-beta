@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.dependencies import CurrentUser, get_current_user
+from app.core.rate_limit import rate_limit
 from app.core.settings import settings
 from app.schemas.tryon import (
     TryonJobCreate,
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/tryon", tags=["tryon"])
 def create_job(
     body: TryonJobCreate,
     user: CurrentUser = Depends(get_current_user),
+    _rl=Depends(rate_limit(max_calls=10, window=60)),
 ) -> TryonJobCreateResponse:
     """Create a try-on job for a product and an optional fitting profile version."""
     try:

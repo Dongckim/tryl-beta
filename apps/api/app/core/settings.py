@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Resend (email verification). Optional in dev; set for production.
     resend_api_key: str = ""
     email_from: str = "verify@tryl.me"
+    # Sentry (error tracking). Set SENTRY_DSN in production.
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.1
 
     @field_validator("cors_origins", mode="before")
     @classmethod

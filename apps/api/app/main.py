@@ -1,23 +1,40 @@
 import logging
 
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.core.logging import setup_logging
+from app.core.middleware import RequestMetricsMiddleware, SecurityHeadersMiddleware
 from app.core.settings import CORS_ORIGIN_REGEX, settings
 from app.routes import auth, health, looks, me, profiles, products, tryon, uploads
 
+setup_logging()
 logger = logging.getLogger(__name__)
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.app_env,
+        send_default_pii=True,
+        enable_logs=True,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        profile_session_sample_rate=1.0,
+        profile_lifecycle="trace",
+    )
 
 app = FastAPI(title="Tryl API", version="0.0.1")
 
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestMetricsMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
