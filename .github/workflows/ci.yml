@@ -97,6 +97,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r apps/api/requirements.txt
 
+      - name: Apply schema
+        run: psql postgresql://tryl:tryl@localhost:5432/tryl_test -f apps/api/db/schema.sql
+
       - name: Run tests
         working-directory: apps/api
         env:
