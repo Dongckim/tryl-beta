@@ -13,10 +13,6 @@
   "host_permissions": [
     "https://*.zara.com/*",
     "https://static.zara.net/*",
-    "http://localhost:8000/*",
-    "http://localhost:8001/*",
-    "http://*:8001/*",
-    "http://*:8000/*",
     "https://api.tryl.me/*"
   ],
   "action": {
