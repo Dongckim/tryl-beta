@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  api:
+    image: ${TRYL_API_IMAGE:-ghcr.io/dongckim/tryl-api:latest}
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  worker:
+    image: ${TRYL_WORKER_IMAGE:-ghcr.io/dongckim/tryl-worker:latest}
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  web:
+    image: ${TRYL_WEB_IMAGE:-ghcr.io/dongckim/tryl-web:latest}
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
