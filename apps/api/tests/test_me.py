@@ -10,4 +10,4 @@ def test_me(client: TestClient) -> None:
     data = r.json()
     assert "id" in data
     assert "email" in data
-    assert data["email"] == "dev@tryl.local"
+    assert data["email"] == "test@tryl.local"

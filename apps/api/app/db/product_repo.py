@@ -81,8 +81,6 @@ def get_or_create_product(
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (source_site, source_url)
                 DO UPDATE SET
-                    title = EXCLUDED.title,
-                    image_url = EXCLUDED.image_url,
                     price_text = COALESCE(EXCLUDED.price_text, products.price_text),
                     brand = COALESCE(EXCLUDED.brand, products.brand),
                     category = COALESCE(EXCLUDED.category, products.category)
