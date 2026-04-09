@@ -25,6 +25,7 @@ def _get_pool() -> ConnectionPool:
             min_size=2,
             max_size=20,
             kwargs={"row_factory": dict_row},
+            check=ConnectionPool.check_connection,
         )
     return _pool
 
