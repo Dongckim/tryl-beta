@@ -1,0 +1,90 @@
+# 모니터링 오버레이. 기존 compose 파일과 조합해서 사용:
+#   로컬: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up
+#   prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+#   ec2:  docker compose -f docker-compose.ec2.yml -f docker-compose.monitoring.yml up -d
+#
+# 포트는 전부 127.0.0.1에만 바인딩 — EC2 퍼블릭에 실수로 노출되지 않도록.
+# 접근은 SSH 터널 또는 역프록시(nginx+basic auth)로.
+#
+# 접속:
+#   Prometheus: http://localhost:9090
+#   Grafana:    http://localhost:3001  (초기 admin / ${GRAFANA_ADMIN_PASSWORD:-admin})
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3001:3000"  # web이 3000 쓰므로 3001로 매핑
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    command:
+      - --path.rootfs=/host
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "127.0.0.1:9100:9100"
+    restart: unless-stopped
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "127.0.0.1:8081:8080"
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      # 로컬: compose 내부 db 서비스. EC2/prod: RDS DSN을 .env의 POSTGRES_EXPORTER_DSN 으로 주입.
+      DATA_SOURCE_NAME: ${POSTGRES_EXPORTER_DSN:-postgresql://tryl:tryl@db:5432/tryl?sslmode=disable}
+    ports:
+      - "127.0.0.1:9187:9187"
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.62.0
+    environment:
+      # 로컬: compose 내부 redis. EC2/prod: ElastiCache 등을 .env의 REDIS_EXPORTER_ADDR 로 주입.
+      REDIS_ADDR: ${REDIS_EXPORTER_ADDR:-redis://redis:6379}
+      # tryon 큐 길이를 redis_key_size{key="tryon:jobs"} 메트릭으로 노출
+      REDIS_EXPORTER_CHECK_KEYS: "tryon:jobs"
+    ports:
+      - "127.0.0.1:9121:9121"
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

@@ -49,5 +49,8 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     sentry_traces_sample_rate: float = 0.1
 
+    # Prometheus metrics HTTP server (scraped by Prometheus at worker:<port>/metrics).
+    metrics_port: int = 9108
+
 
 settings = Settings()

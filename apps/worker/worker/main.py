@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 import sentry_sdk
 
 from worker.core.config import settings
+from worker.core.metrics import start_metrics_server
 from worker.tasks.tryon import consume_tryon_queue
 
 
@@ -53,6 +54,7 @@ if settings.sentry_dsn:
 
 
 def main() -> None:
+    start_metrics_server(port=settings.metrics_port)
     consume_tryon_queue()
 
 

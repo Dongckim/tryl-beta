@@ -8,6 +8,7 @@ import time
 import redis as redis_lib
 
 from worker.core.config import settings
+from worker.core.metrics import tryon_job_retries_total
 from worker.repositories import tryon_repo
 from worker.services.tryon_service import process_tryon_job
 
@@ -41,6 +42,7 @@ def _requeue(job_id: int, r: redis_lib.Redis) -> None:  # type: ignore[type-arg]
     logger.info("Re-queuing job %s for retry #%d (backoff %.1fs)", job_id, retry_num, backoff)
     time.sleep(backoff)
     r.lpush(settings.queue_name, str(job_id))
+    tryon_job_retries_total.inc()
 
 
 def run_tryon_task(job_id: int) -> None:

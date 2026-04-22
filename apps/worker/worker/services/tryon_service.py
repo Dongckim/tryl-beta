@@ -8,6 +8,10 @@ from datetime import datetime, timezone
 
 from worker.providers import FittingProfileImages, TryOnInput, TryOnOutput
 from worker.core.config import settings
+from worker.core.metrics import (
+    tryon_job_duration_seconds,
+    tryon_jobs_processed_total,
+)
 from worker.providers.factory import get_provider
 from worker.repositories import tryon_repo
 from worker.services.temp_results import save_temp_result
@@ -24,22 +28,23 @@ def process_tryon_job(tryon_job_id: int) -> None:
     if job is None:
         return  # Not found or already claimed
 
-    try:
-        profile = tryon_repo.get_fitting_profile_version_for_job(tryon_job_id)
-        product = tryon_repo.get_product_for_job(tryon_job_id)
+    with tryon_job_duration_seconds.time():
+        try:
+            profile = tryon_repo.get_fitting_profile_version_for_job(tryon_job_id)
+            product = tryon_repo.get_product_for_job(tryon_job_id)
 
-        if profile is None or product is None:
-            _fail(tryon_job_id, "Product or fitting profile not found")
-            return
+            if profile is None or product is None:
+                _fail(tryon_job_id, "Product or fitting profile not found")
+                return
 
-        profile_photo_index = job.get("profile_photo_index") or 1
-        provider_input = _build_provider_input(profile, product, profile_photo_index=profile_photo_index)
-        provider = get_provider(tryon_job_id)
-        output = provider.generate(provider_input)
+            profile_photo_index = job.get("profile_photo_index") or 1
+            provider_input = _build_provider_input(profile, product, profile_photo_index=profile_photo_index)
+            provider = get_provider(tryon_job_id)
+            output = provider.generate(provider_input)
 
-        _complete(tryon_job_id, output)
-    except Exception as e:
-        _fail(tryon_job_id, _format_error(e))
+            _complete(tryon_job_id, output)
+        except Exception as e:
+            _fail(tryon_job_id, _format_error(e))
 
 
 def _build_provider_input(
@@ -108,6 +113,7 @@ def _complete(tryon_job_id: int, output: TryOnOutput) -> None:
         provider=output.provider,
         completed_at=datetime.now(timezone.utc),
     )
+    tryon_jobs_processed_total.labels(status="completed").inc()
 
 
 def _fail(tryon_job_id: int, error_message: str) -> None:
@@ -118,6 +124,7 @@ def _fail(tryon_job_id: int, error_message: str) -> None:
         error_message=error_message[:MAX_ERROR_LEN],
         completed_at=datetime.now(timezone.utc),
     )
+    tryon_jobs_processed_total.labels(status="failed").inc()
 
 
 def _format_error(e: Exception) -> str:

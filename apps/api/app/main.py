@@ -4,6 +4,7 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.core.logging import setup_logging
 from app.core.middleware import RequestMetricsMiddleware, SecurityHeadersMiddleware
@@ -55,6 +56,10 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         content={"detail": "Internal server error"},
         headers=headers,
     )
+
+Instrumentator(
+    excluded_handlers=["/health", "/healthz", "/metrics"],
+).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 app.include_router(health.router)
 app.include_router(auth.router)

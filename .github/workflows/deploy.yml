@@ -78,5 +78,5 @@ jobs:
             docker pull ${{ env.IMAGE_PREFIX }}-api:latest
             docker pull ${{ env.IMAGE_PREFIX }}-worker:latest
             docker pull ${{ env.IMAGE_PREFIX }}-web:latest
-            docker compose -f docker-compose.ec2.yml up -d
+            docker compose -f docker-compose.ec2.yml -f docker-compose.monitoring.yml up -d
             docker image prune -f
