@@ -1,10 +1,12 @@
 import logging
 
 import sentry_sdk
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_client import REGISTRY, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
+from starlette.responses import Response
 
 from app.core.logging import setup_logging
 from app.core.middleware import RequestMetricsMiddleware, SecurityHeadersMiddleware
@@ -59,7 +61,26 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 Instrumentator(
     excluded_handlers=["/health", "/healthz", "/metrics"],
-).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+).instrument(app)
+
+
+def _require_internal_network(request: Request) -> None:
+    """Restrict /metrics to loopback + RFC1918 private ranges so Prometheus on
+    the same Docker network can scrape, but the public API port cannot expose
+    metrics to the internet."""
+    ip = request.client.host if request.client else ""
+    if not ip.startswith(("127.", "10.", "172.", "192.168.", "::1")):
+        raise HTTPException(status_code=404)
+
+
+@app.get(
+    "/metrics",
+    include_in_schema=False,
+    dependencies=[Depends(_require_internal_network)],
+)
+def metrics() -> Response:
+    return Response(generate_latest(REGISTRY), media_type="text/plain; version=0.0.4; charset=utf-8")
+
 
 app.include_router(health.router)
 app.include_router(auth.router)
