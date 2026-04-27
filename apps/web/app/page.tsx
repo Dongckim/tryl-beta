@@ -392,16 +392,27 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-16 border-t border-white/10 pt-10"
           >
-            <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/40">
+            <p className="text-xs font-medium uppercase tracking-[0.3em] text-white/50">
+              Available now
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <a
+                href="https://chromewebstore.google.com/detail/tryl/ncmgabhfidmlbammoelhhlnlkijhjpdi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-sm border border-gold bg-gold/20 px-4 py-2 text-xs font-medium text-gold transition hover:bg-gold/30"
+              >
+                Install Chrome Extension
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-white/40">
+              Free · Works on Zara product pages
+            </p>
+
+            <p className="mt-10 text-xs font-medium uppercase tracking-[0.3em] text-white/40">
               Coming soon
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <button
-                disabled
-                className="cursor-not-allowed rounded-sm border border-white/15 bg-white/[0.03] px-4 py-2 text-xs font-medium text-white/40"
-              >
-                Chrome Extension
-              </button>
               <button
                 disabled
                 className="cursor-not-allowed rounded-sm border border-white/15 bg-white/[0.03] px-4 py-2 text-xs font-medium text-white/40"
@@ -415,7 +426,6 @@ export default function LandingPage() {
                 Play Store
               </button>
             </div>
-            <p className="mt-3 text-xs text-white/30">Not yet available</p>
           </motion.div>
         </div>
       </section>

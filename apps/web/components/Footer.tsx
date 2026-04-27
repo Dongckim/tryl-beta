@@ -9,6 +9,14 @@ export function Footer() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 text-xs text-white/50">
         <p>© {year} TRYL by Alexander. All rights reserved.</p>
         <div className="flex gap-4">
+          <a
+            href="https://chromewebstore.google.com/detail/tryl/ncmgabhfidmlbammoelhhlnlkijhjpdi"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition hover:text-white/80"
+          >
+            Chrome Extension
+          </a>
           <Link href="/privacy" className="transition hover:text-white/80">
             Privacy Policy
           </Link>
